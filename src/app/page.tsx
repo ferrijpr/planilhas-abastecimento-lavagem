@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Fuel, Car, Plus, Search, Filter, Download, Edit, Trash2, Calendar, DollarSign, BarChart3 } from 'lucide-react'
+import { Fuel, Car, Plus, Search, Filter, Download, Edit, Trash2, Calendar, DollarSign, BarChart3, Save } from 'lucide-react'
 
 // Tipos de dados
 interface AbastecimentoRecord {
@@ -72,21 +72,88 @@ export default function PlanilhasVeiculos() {
   const [dialogAbastecimento, setDialogAbastecimento] = useState(false)
   const [dialogLavagem, setDialogLavagem] = useState(false)
 
-  // Função para obter data atual no formato YYYY-MM-DD (fixo para evitar hidratação)
+  // Carregar dados do localStorage ao inicializar
+  useEffect(() => {
+    const abastecimentosSalvos = localStorage.getItem('abastecimentos')
+    const lavagensSalvas = localStorage.getItem('lavagens')
+    
+    if (abastecimentosSalvos) {
+      setAbastecimentos(JSON.parse(abastecimentosSalvos))
+    }
+    
+    if (lavagensSalvas) {
+      setLavagens(JSON.parse(lavagensSalvas))
+    }
+  }, [])
+
+  // Salvar dados no localStorage sempre que houver mudanças
+  useEffect(() => {
+    localStorage.setItem('abastecimentos', JSON.stringify(abastecimentos))
+  }, [abastecimentos])
+
+  useEffect(() => {
+    localStorage.setItem('lavagens', JSON.stringify(lavagens))
+  }, [lavagens])
+
+  // Função para obter data atual no formato YYYY-MM-DD
   const obterDataAtual = (): string => {
-    return '2024-01-15' // Data fixa para evitar problemas de hidratação
+    const hoje = new Date()
+    return hoje.toISOString().split('T')[0]
   }
 
-  // Função para obter hora atual no formato HH:MM (fixo para evitar hidratação)
+  // Função para obter hora atual no formato HH:MM
   const obterHoraAtual = (): string => {
-    return '12:00' // Hora fixa para evitar problemas de hidratação
+    const agora = new Date()
+    return agora.toTimeString().slice(0, 5)
+  }
+
+  // Função para exportar dados para arquivo JSON
+  const exportarDados = () => {
+    const dados = {
+      abastecimentos,
+      lavagens,
+      dataExportacao: new Date().toISOString()
+    }
+    
+    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `controle-veiculos-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // Função para importar dados de arquivo JSON
+  const importarDados = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const dados = JSON.parse(e.target?.result as string)
+        if (dados.abastecimentos) {
+          setAbastecimentos(dados.abastecimentos)
+        }
+        if (dados.lavagens) {
+          setLavagens(dados.lavagens)
+        }
+        alert('Dados importados com sucesso!')
+      } catch (error) {
+        alert('Erro ao importar dados. Verifique se o arquivo está no formato correto.')
+      }
+    }
+    reader.readAsText(file)
   }
 
   // Função para adicionar abastecimento
   const adicionarAbastecimento = () => {
     if (!novoAbastecimento.placa || !novoAbastecimento.quantidade || !novoAbastecimento.precoLitro) return
 
-    const novoId = (abastecimentos.length + 1).toString()
+    const novoId = Date.now().toString()
     const precoTotal = (novoAbastecimento.quantidade || 0) * (novoAbastecimento.precoLitro || 0)
     
     const registro: AbastecimentoRecord = {
@@ -113,7 +180,7 @@ export default function PlanilhasVeiculos() {
   const adicionarLavagem = () => {
     if (!novaLavagem.placa || !novaLavagem.preco) return
 
-    const novoId = (lavagens.length + 1).toString()
+    const novoId = Date.now().toString()
     
     const registro: LavagemRecord = {
       id: novoId,
@@ -205,6 +272,36 @@ export default function PlanilhasVeiculos() {
           <p className="text-lg text-gray-600">
             Controle completo de gastos com abastecimento e lavagem de veículos
           </p>
+          
+          {/* Botões de Exportar/Importar */}
+          <div className="flex justify-center gap-4 mt-6">
+            <Button 
+              onClick={exportarDados}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar Dados
+            </Button>
+            
+            <div className="relative">
+              <input
+                type="file"
+                accept=".json"
+                onChange={importarDados}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                id="import-file"
+              />
+              <Button 
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                asChild
+              >
+                <label htmlFor="import-file" className="cursor-pointer flex items-center">
+                  <Save className="w-4 h-4 mr-2" />
+                  Importar Dados
+                </label>
+              </Button>
+            </div>
+          </div>
         </div>
 
         <Tabs defaultValue="abastecimento" className="space-y-6">
