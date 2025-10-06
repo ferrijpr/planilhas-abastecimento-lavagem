@@ -277,7 +277,7 @@ export default function PlanilhasVeiculos() {
           <div className="flex justify-center gap-4 mt-6">
             <Button 
               onClick={exportarDados}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              className="bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600"
             >
               <Download className="w-4 h-4 mr-2" />
               Exportar Dados
@@ -292,7 +292,7 @@ export default function PlanilhasVeiculos() {
                 id="import-file"
               />
               <Button 
-                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800"
+                className="bg-gradient-to-r from-green-700 to-green-800 hover:from-green-800 hover:to-green-900"
                 asChild
               >
                 <label htmlFor="import-file" className="cursor-pointer flex items-center">
